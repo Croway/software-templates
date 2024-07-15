@@ -1,0 +1,26 @@
+- restConfiguration:
+    apiContextPath: /api-doc
+    {%- if values.generate_openapi_model %}
+    bindingMode: json
+    bindingPackageScan: io.janus.csbapp.model
+    {%- endif %}
+
+- rest:
+    id: rest-openapi
+    openApi:
+      id: openapi-configuration
+      specification: ${{values.openapi_name}}
+      missingOperation: ignore # For demo purpose, should not be used in production
+
+# Add openapi implementation here with direct routes 
+#- route:
+#    from:
+#      uri: direct:null
+#      steps:
+#        - setBody:
+#            id: setResponseBody
+#            expression:
+#              constant:
+#                expression: Hello World
+#        - log:
+#            message: "do something here"

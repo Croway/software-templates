@@ -1,0 +1,288 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: camel-springboot-rest-api
+  title: Camel Spring Boot Contract first Rest API
+  description: Skaffold a Camel Spring Boot application that expose an OpenApi spec
+  tags:
+    - recommended
+    - java
+    - camel
+    - rest
+    - openapi
+spec:
+  owner: rhdeveloper-workshop-authors
+  type: service
+
+  parameters:
+    - title: Basic component informations
+      required:
+        - component_id
+        - owner
+        - namespace
+      properties:
+        component_id:
+          title: Name
+          type: string
+          description: Unique name of the component, will be used as maven artifact name
+          ui:field: EntityNamePicker
+        description:
+          title: Description
+          type: string
+          description: Help others understand what this component does.
+        owner:
+          title: Owner
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              kind:
+                - Group
+                - User
+        system:
+          title: System
+          type: string
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              kind:
+                - System
+        namespace:
+          title: Namespace
+          type: string
+          description: Openshift project
+          default: dev
+    - title: Provide information about the Java project
+      required:
+        - group_id
+        - version
+        - java_package_name
+      properties:
+        group_id:
+          title: Group ID
+          type: string
+          default: io.janus
+          description: Maven Group ID eg (io.janus)
+        version: 
+          title: Red Hat Build of Apache Camel for Spring Boot version
+          type: string
+          default: 1.0.0-SNAPSHOT
+          description: Select the Red Hat Build of Apache Camel for Spring Boot version
+          enum:
+            - 4.7.0
+          enumNames:
+            - '4.7.0'
+        java_package_name:
+          title: Java Package Namespace
+          type: string
+          default: io.janus.csbapp
+          description: Name for the Java Package (e.g. io.janus.camelapp) should match Group ID and Artifact ID
+        port:
+          title: Port
+          type: number
+          default: 8080
+          description: Override the port exposed for the application
+        management_port:
+          title: Management Port
+          type: number
+          default: 8081
+          description: Override the port exposed for the management
+    - title: Provide information about the Rest API
+      required:
+        - openapi_name
+        - openapi_spec
+      properties:
+        openapi_name:
+          title: OpenApi name with extension
+          type: string
+          default: myOpenapi.yaml
+          description: OpenApi name with extension (myopenapi.yaml)
+        generate_openapi_model:
+          title: Generate models
+          type: boolean
+        openapi_spec: 
+          title: OpenApi specification
+          type: string
+          ui:widget: textarea
+          ui:options:
+            rows: 30
+          ui:placeholder: |
+            openapi: 3.0.0
+            info:
+              title: Sample API
+              description: Optional multiline or single-line description in [CommonMark](http://commonmark.org/help/) or HTML.
+              version: 0.1.9
+            servers:
+              - url: http://api.example.com/v1
+                description: Optional server description, e.g. Main (production) server
+              - url: http://staging-api.example.com
+                description: Optional server description, e.g. Internal staging server for testing
+            paths:
+              /users:
+                get:
+                  summary: Returns a list of users.
+                  description: Optional extended description in CommonMark or HTML.
+                  responses:
+                    '200':    # status code
+                      description: A JSON array of user names
+                      content:
+                        application/json:
+                          schema: 
+                            type: array
+                            items: 
+                              type: string
+    - title: Provide Image Registry Information
+      required:
+        - image_registry
+      properties:
+        image_registry:
+          title: Image Registry
+          type: string
+          enum:
+            - Openshift
+            - Quay
+      dependencies:
+        image_registry:
+          oneOf:
+            - properties:
+                image_registry:
+                  enum:
+                    - Openshift
+                image_host:
+                  title: Image Host
+                  type: string
+                  description: Host for storing image
+                  default: image-registry.openshift-image-registry.svc:5000
+                image_tag:
+                  title: Image Tag
+                  default: latest
+                  type: string
+                  description: Build Image tag
+            - properties:
+                image_registry:
+                  enum:
+                    - Quay
+                image_host:
+                  title: Image Host
+                  type: string
+                  description: Host for storing image
+                  default: images.paas.redhat.com
+                image_organization:
+                  title: Organization
+                  type: string
+                  description: Name of the Quay Organization
+                  default: fuseqe
+                image_tag:
+                  title: Image Tag
+                  default: latest
+                  type: string
+                  description: Build Image tag
+  steps:
+    - id: sourceCodeTemplate
+      name: Generating the Source Code Component
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          component_id: ${{ parameters.component_id }}
+          description: ${{ parameters.description }}
+          artifact_id: ${{ parameters.component_id }}
+          group_id: ${{ parameters.group_id }}
+          system: ${{ parameters.system }}
+          cluster_id: .apps.cluster-xcbw9.sandbox2706.opentlc.com
+          csb_version: ${{ parameters.version }}
+          version_major: ${{ parameters.version.slice(0, 1) }}
+          java_package_name: ${{ parameters.java_package_name | replace('.', '/') }}
+          java_package: ${{ parameters.java_package_name }}
+          port: ${{ parameters.port }}
+          management_port: ${{ parameters.management_port }}
+          owner: ${{ parameters.owner }}
+          git_host: github.com
+          git_group: development
+          image_host: ${{ parameters.image_host }}
+          namespace: ${{ parameters.component_id }}-${{ parameters.namespace }}
+          openapi_name: ${{ parameters.openapi_name }}
+          openapi_spec: ${{ parameters.openapi_spec }}
+          generate_openapi_model: ${{ parameters.generate_openapi_model }}
+
+    - id: publish
+      name: Publish
+      action: publish:github
+      input:
+        allowedHosts: ['github.com']
+        description: This is ${{ parameters.component_id }}
+        repoUrl: github.com?repo=${{ parameters.component_id }}&owner=contract-first-idp
+        repoVisibility: public
+        deleteBranchOnMerge: true
+        #access: contract-first-idp/${{ parameters.owner }}
+        protectDefaultBranch: false        
+
+    - id: register
+      name: Register
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: "/catalog-info.yaml"
+
+    - id: template-tenant-gitops
+      name: Render GitOps Template
+      action: fetch:template
+      input:
+        url: ./manifests
+        copyWithoutRender: []
+        values:
+          component_id: ${{ parameters.component_id }}
+          destination: https://github.com/contract-first-idp/${{ parameters.component_id }}-gitops.git
+          source_repository: https://github.com/contract-first-idp/${{ parameters.component_id }}.git
+          description: ${{ parameters.description }}
+          artifact_id: ${{ parameters.component_id }}
+          repository_name: ${{ parameters.component_id }}
+          git_owner: development
+          cluster: .apps.cluster-xcbw9.sandbox2706.opentlc.com
+          namespace: ${{ parameters.component_id }}-${{ parameters.namespace }}
+          image_host: ${{parameters.image_host}}
+          image_registry: ${{parameters.image_registry}}
+          image_name: ${{parameters.component_id}}
+          image_tag: ${{parameters.image_tag}}
+          owner: development
+          organization: development
+          git_host: github.com
+          application: ${{ parameters.system }}
+          git_group: development
+          repo: github.com/contract-first-idp/${{values.component_id}}.git
+          port: ${{ parameters.port }}
+          management_port: ${{ parameters.management_port }}
+        targetPath: ./tenant-gitops
+
+    - id: publish-gitops
+      name: Publishing to Resource Repository
+      action: publish:github
+      input:
+        allowedHosts: ['github.com']
+        description: gitops resources for ${{ parameters.component_id }}
+        repoUrl: github.com?repo=${{ parameters.component_id }}-gitops&owner=contract-first-idp
+        repoVisibility: public
+        deleteBranchOnMerge: true
+        #access: contract-first-idp/${{ parameters.owner }}
+        protectDefaultBranch: false
+        sourcePath: ./tenant-gitops
+
+    - id: create-argocd-resources
+      name: Create ArgoCD Resources
+      action: argocd:create-resources
+      input:
+        appName: ${{ parameters.component_id }}
+        argoInstance: main
+        namespace: janus-argocd
+        repoUrl: https://github.com/contract-first-idp/${{ parameters.component_id }}-gitops.git
+        path: 'argocd/'
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Pipeline status
+        url: https://console-openshift-console.apps.cluster-xcbw9.sandbox2706.opentlc.com/dev-pipelines/ns/${{parameters.component_id}}-${{ parameters.namespace }}/
+      - title: Open in catalog
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}

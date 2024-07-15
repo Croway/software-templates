@@ -1,0 +1,18 @@
+{{- with .Values.monitoring }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: {{ $.Values.app.componentId }}
+  name: {{ $.Values.app.componentId }}
+  namespace: {{ $.Values.app.namespace }}
+spec:
+  endpoints:  
+  - interval: {{ .interval }}
+    port: {{ .port }}-tcp
+    scheme: http
+    path: /actuator/prometheus
+  selector:
+    matchLabels:
+      app: {{ $.Values.app.componentId }}
+{{- end }}

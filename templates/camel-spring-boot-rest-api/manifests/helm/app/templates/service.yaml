@@ -1,0 +1,19 @@
+{{- with .Values.service }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Values.app.componentId }}
+  labels:
+    {{- include "csb-template.labels" $ | nindent 4 }}
+spec:
+  type: {{ .type }}
+  ports:
+    - port: {{ .port }}
+      protocol: TCP
+      name: app
+    - port: {{ $.Values.monitoring.port }}
+      protocol: TCP
+      name: management
+  selector:
+    {{- include "csb-template.selectorLabels" $ | nindent 4 }}
+{{- end }}
