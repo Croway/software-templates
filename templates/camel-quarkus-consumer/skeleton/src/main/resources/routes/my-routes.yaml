@@ -8,10 +8,17 @@
         timerName: from-yaml
         period: "{{timer.period}}"
       steps:
-        - bean:
-            id: bean-timer-to-log
-            ref: greeting
-            method: greet
+        - to:
+            id: timer-to-log-http
+            uri: https
+            parameters:
+              httpUri: https://api.chucknorris.io/jokes/random
+        - setBody:
+            id: timer-to-log-setBody
+            expression:
+              jsonpath:
+                id: timer-to-log-jsonPath
+                expression: $.value
         - to:
             id: log-timer-to-log
             uri: log
