@@ -27,6 +27,7 @@
 
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.4.0</maven-surefire-plugin.version>
+        <registry.version>2.6.4.Final</registry.version>
     </properties>
 
     <dependencyManagement>
@@ -148,6 +149,28 @@
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
+            {%- if values.apicurio_registry_endpoint %}
+            <plugin>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-maven-plugin</artifactId>
+                <version>${registry.version}</version>
+                <executions>
+                  <execution>
+                    <phase>generate-sources</phase>
+                    <goals>
+                      <goal>register</goal> 
+                    </goals>
+                    <configuration>
+                      <registryUrl>${{ values.apicurio_registry_endpoint }}</registryUrl> 
+                      <artifactType>OPENAPI</artifactType>
+                      <artifacts>
+                        <schema1>https://raw.githubusercontent.com/croway/${{values.application.split("/")[1]}}-${{ values.api_id }}-api/main/specification.yaml</schema1> 
+                      </artifacts>
+                    </configuration>
+                  </execution>
+                </executions>
+              </plugin>
+              {%- endif %}
         </plugins>
     </build>
 

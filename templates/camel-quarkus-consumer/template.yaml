@@ -31,6 +31,24 @@ spec:
           title: Java Package Name
           type: string
           description: Name for the java package. eg (package in my.package.name)
+        deployment:
+          title: Select the deployment strategy
+          type: string
+          default: jvm
+          enum:
+            - jvm
+            - legacy-jar
+            - native
+            - native-micro
+          enumNames:
+            - 'JVM'
+            - 'JVM with legacy-jar'
+            - 'Native'
+            - 'Native Micro'
+        apicurio_registry_endpoint:
+          title: Apicurio Registry API Endpoint where the OpenAPI Spec will be stored
+          type: string
+          description: Apicurio Registry API Endpoint, ex. http://apicurioregistry-sql.apicurio-registry.router-default.apps.cluster-448tj.448tj.sandbox1020.opentlc.com/api
         description:
           title: Description
           type: string
@@ -78,6 +96,7 @@ spec:
           destination: https://github.com/croway/${{ parameters.application.split("/")[1] }}-${{ parameters.component_id }}-service
           application: ${{ parameters.application }}
           api_id: ${{ parameters.api.split("/")[1] }}
+          apicurio_registry_endpoint: ${{ parameters.apicurio_registry_endpoint }}
 
     - id: publish
       name: publish component source repository
@@ -116,6 +135,7 @@ spec:
           organization: croway
           team: ${{ parameters.owner }}
           repo_id: ${{ parameters.component_id }}
+          deployment: ${{ parameters.deployment }}
         targetPath: ./system-gitops
 
     - id: pull-request
